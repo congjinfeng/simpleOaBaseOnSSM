@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cong.dao.DepartmentMapper">
+    <!--查找所有的部门ztree-->
+    <select id="findAllDepartmentForTree" resultType="java.util.Map">
+            select *from department
+    </select>
+    <!--查找所有的部门-->
+    <select id="findAllDepartment" resultType="java.util.Map" parameterType="java.util.Map">
+        select a.d_id,a.d_name,c.u_name manname,c.u_phone manphone,c.u_email manemail,d.u_name hrname,d.u_phone
+        hrphone,d.u_email hremail,b.d_name upname from department a LEFT JOIN department b on a.d_pid=b.d_id LEFT JOIN
+        user c on a.u_manId=c.u_id LEFT JOIN user d on a.u_hrId=d.u_id
+        <where>
+            <if test="name!=null and name!=''">
+                and a.d_name=#{name}
+            </if>
+            <if test="manname!=null and manname!=''">
+                AND c.u_name=#{manname}
+            </if>
+            <if test="hrname!=null and hrname!=''">
+                AND d.u_name=#{hrname}
+            </if>
+        </where>
+        ORDER by a.d_id
+        limit #{start},#{limit}
+    </select>
+    <!--查找所有的总量-->
+    <select id="findAllDepartmentCount" resultType="int" parameterType="java.util.Map">
+        select count(*) from department a LEFT JOIN department b on a.d_pid=b.d_id LEFT JOIN
+        user c on a.u_manId=c.u_id LEFT JOIN user d on a.u_hrId=d.u_id
+        <where>
+            <if test="name!=null and name!=''">
+                and a.d_name=#{name}
+            </if>
+            <if test="manname!=null and manname!=''">
+                and c.u_name=#{manname}
+            </if>
+            <if test="hrname!=null and hrname!=''">
+                and d.u_name=#{hrname}
+            </if>
+        </where>
+    </select>
+    <!--添加部门-->
+    <insert id="addDepartment" parameterType="java.util.Map">
+        insert into department(d_name,u_manId,u_hrId,d_pid)values(#{name},#{man},#{hr},#{id})
+    </insert>
+    <!--检查同一个部门下是否有相同名称的部门-->
+    <select id="findDeparmetnByName" parameterType="java.util.Map" resultType="java.util.Map">
+            select *from department where d_pid=#{id} and d_name=#{name}
+    </select>
+    <!--查找所有的员工-->
+    <select id="findAllUser" resultType="java.util.Map" parameterType="java.util.Map">
+        select a.*,b.d_name from user a,department b
+        <where>
+            a.d_id=b.d_id
+            <if test="usernum!=null and usernum!=''">
+                and a.u_loginname=#{usernum}
+            </if>
+            <if test="departmentId!=null and departmentId!=''">
+                and b.d_id=#{departmentId}
+            </if>
+            <if test="username!=null and username!=''">
+                and a.u_name=#{username}
+            </if>
+            <if test="name!=null and name!=''">
+                and b.d_name=#{name}
+            </if>
+            <if test="position!=null and position!=''">
+                and a.u_position=#{position}
+            </if>
+            <if test="enddate!=null and enddate!='' and enddate=='在职'">
+                and a.u_enddate is null
+            </if>
+            <if test="enddate!=null and enddate!='' and enddate=='离职'">
+                and a.u_enddate is not null
+            </if>
+        </where>
+        limit #{start},#{limit}
+    </select>
+    <select id="findAllUserCount" resultType="int" parameterType="java.util.Map">
+        select count(*) from user a,department b
+        <where>
+            a.d_id=b.d_id
+            <if test="usernum!=null and usernum!=''">
+                and a.u_loginname=#{usernum}
+            </if>
+            <if test="departmentId!=null and departmentId!=''">
+                and b.d_id=#{departmentId}
+            </if>
+            <if test="username!=null and username!=''">
+                and a.u_name=#{username}
+            </if>
+            <if test="name!=null and name!=''">
+                and b.d_name=#{name}
+            </if>
+            <if test="position!=null and position!=''">
+                and a.u_position=#{position}
+            </if>
+            <if test="enddate!=null and enddate!='' and enddate=='在职'">
+                and a.u_enddate is null
+            </if>
+            <if test="enddate!=null and enddate!='' and enddate=='离职'">
+                and a.u_enddate is not null
+            </if>
+        </where>
+    </select>
+    <!--管理员修改密码-->
+    <update id="updateAdminPass" parameterType="java.util.Map">
+        update admin set a_pass=#{pass} where a_id=#{id}
+    </update>
+    <!--根据部门ID查询该部门下是否有下级部门-->
+    <select id="findNextDeparmentById" parameterType="int" resultType="java.util.Map">
+        select *from department where d_pid=#{value}
+    </select>
+    <!--根据部门ID查询该部门下是否有员工-->
+    <select id="findUserById" resultType="java.util.Map" parameterType="int">
+        select *from user where d_id=#{value}
+    </select>
+    <!--根据部门ID查找部门信息-->
+    <select id="findDepartmentById" resultType="java.util.Map" parameterType="int">
+              select *from department where d_id=#{value};
+    </select>
+    <!--更新部门信息-->
+    <update id="updateDepartment" parameterType="java.util.Map">
+          update department SET d_name=#{name},u_manId=#{man},u_hrId=#{hr} where d_id=#{id}
+    </update>
+    <!--查找上级部门的ID-->
+    <select id="findUpDepartmentId" parameterType="int" resultType="int">
+        select d_pid from department where d_id=#{value}
+    </select>
+    <!--根据部门ID删除部门-->
+    <delete id="deleteDepartmentById" parameterType="int">
+        delete from department where d_id=#{value}
+    </delete>
+    <!--添加员工-->
+    <insert id="addUser" parameterType="java.util.Map">
+        insert into user(u_loginname,u_name,u_pass,u_date,u_position,u_phone,u_email,u_card,d_id) values(#{usernum},#{name},#{pass},#{date},#{position},#{phone},#{email},#{card},#{department})
+    </insert>
+    <!--修改员工-->
+    <update id="updateUser" parameterType="java.util.Map">
+        update user set u_pass=#{pass},u_phone=#{phone},u_email=#{email},u_card=#{card},u_position=#{position},d_id=#{department} where u_id=#{id}
+    </update>
+    <select id="findManIdByDepartmentId" parameterType="int" resultType="int">
+       select count(*) from department where d_id=#{value} and u_manId is not null
+    </select>
+    <select id="findHrIdByDepartmentId" parameterType="int" resultType="int">
+        select count(*) from department where d_id=#{value} and u_hrId is not null
+    </select>
+    <update id="updateDeparmentWhenUserChoseMan" parameterType="java.util.Map">
+        update department set u_manId=#{id} where d_id=#{department}
+    </update>
+    <update id="updateDeparmentWhenUserChoseHr" parameterType="java.util.Map">
+        update department set u_hrId=#{id} where d_id=#{department}
+    </update>
+    <select id="findUserByUserId" parameterType="int" resultType="java.util.Map">
+              select *from user where u_id=#{value}
+    </select>
+    <!--删除员工-->
+    <delete id="deleteUser" parameterType="java.util.Map">
+        update user set u_enddate=#{enddate} where u_id=#{id}
+    </delete>
+    <!--删除的员工是主管，则在部门表中删除-->
+    <update id="updateDepartmentMan" parameterType="int">
+        	update department set u_manId=null where u_manId=#{value}
+    </update>
+    <update id="updateDepartmentHr" parameterType="int">
+        update department set u_hrId=null where u_hrId=#{value}
+    </update>
+    <!--查找公司这个月一共招了多少人-->
+    <select id="findHowManyPeopleComeThisMonth" parameterType="string" resultType="int">
+              select count(*) from user where u_loginname like '${value}%'
+    </select>
+    <!--查找所有的公告-->
+    <select id="findAllNotice" resultType="java.util.Map" parameterType="java.util.Map">
+        select *from announcement
+        limit #{start},#{limit}
+    </select>
+    <select id="findAllNoticeCount" resultType="int">
+        select count(*)from announcement
+    </select>
+    <!--添加公告-->
+    <insert id="addNotice" parameterType="java.util.Map">
+        <if test="name!=null and name!=''and newName!=null and newName!=''">
+            insert into announcement(a_time,a_title,a_content,a_filePath,a_fileName)VALUES
+            (#{time},#{title},#{content},#{newName},#{name})
+        </if>
+        <if test="name==null or name=='' or newName==null or newName==''">
+            insert into announcement(a_time,a_title,a_content)VALUES
+            (#{time},#{title},#{content})
+        </if>
+    </insert>
+    <!--查找部门数量-->
+    <select id="findDepartmentCount" resultType="int">
+        select count(*) from department
+    </select>
+    <!--查找员工数量-->
+    <select id="findUserCount" resultType="int">
+        select count(*) from user
+    </select>
+    <!--查找正式员工数量-->
+    <select id="findUserNormalCount" resultType="int">
+        select count(*) from user where u_position !="实习生"
+    </select>
+    <!--查找非正式员工数量-->
+    <select id="findUserNoNormalCount" resultType="int">
+        select count(*) from user where u_position ="实习生"
+    </select>
+    <!--本月新招员工-->
+    <select id="inUserCount" resultType="int" parameterType="string">
+        select count(*) from user where u_date like "${value}%"
+    </select>
+    <!--本月离职员工-->
+    <select id="outUserCount" resultType="int" parameterType="string">
+        select count(*) from user where u_enddate like "${value}%"
+    </select>
+</mapper>

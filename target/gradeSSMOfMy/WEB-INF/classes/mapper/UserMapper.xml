@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cong.dao.UserMapper">
+    <resultMap id="user" type="com.cong.bean.User">
+        <id column="u_id" jdbcType="INTEGER" property="uId"/>
+        <result column="u_name" jdbcType="VARCHAR" property="uName"/>
+        <result column="u_pass" jdbcType="VARCHAR" property="uPass"/>
+        <result column="u_loginname" jdbcType="VARCHAR" property="uLoginName"/>
+        <result column="u_date" jdbcType="DATE" property="uDate"/>
+        <result column="u_position" jdbcType="VARCHAR" property="uPosition"/>
+        <result column="u_phone" jdbcType="VARCHAR" property="uPhone"/>
+        <result column="u_email" jdbcType="VARCHAR" property="uEmail"/>
+        <result column="u_card" jdbcType="VARCHAR" property="uCard"/>
+        <result column="d_id" jdbcType="INTEGER" property="dId"/>
+    </resultMap>
+    <!--检查员工的登录密码-->
+    <select id="checkUserLoginPass" parameterType="java.util.Map" resultMap="user">
+        select *from user where u_loginname=#{name} and u_pass=#{pass}
+    </select>
+    <!--按照员工ID查找HRID-->
+    <select id="findHrIdByUserId" parameterType="int" resultType="int">
+      	select u_hrId from department where d_id=(select d_id from user where u_id=#{value})
+    </select>
+    <!--添加工时-->
+    <insert id="addWorkHourse" parameterType="java.util.Map">
+        insert into workHourse(w_application,w_approver,w_time,w_workDetail,w_workTime,w_confirm)VALUES (#{id},#{hrid},#{date},#{content},#{time},#{confirm})
+    </insert>
+    <!--判断今天工时是否已经提交-->
+    <select id="findTodayWorkHourse" parameterType="java.util.Map" resultType="java.util.Map">
+        select *from workHourse where w_time=#{date} and w_application=#{id};
+    </select>
+    <!--查找员工的工时-->
+    <select id="findAllWorkHourse" parameterType="java.util.Map" resultType="java.util.Map">
+        <if test="sort == '1'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id}
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='2'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id} and a.w_confirm=1
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='3'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id} and a.w_confirm=2
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='4'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_approver=#{id} and a.w_confirm=0
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='5'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_approver=#{id}
+            </where>
+            limit #{start},#{limit}
+        </if>
+    </select>
+    <select id="findAllWorkHourseCount" parameterType="java.util.Map" resultType="int">
+        <if test="sort=='1'.toString()">
+            select count(*)from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id}
+            </where>
+        </if>
+        <if test="sort=='2'.toString()">
+            select count(*) from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id} and a.w_confirm=1
+            </where>
+        </if>
+        <if test="sort=='3'.toString()">
+            select count(*) from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_application=#{id} and a.w_confirm=2
+            </where>
+        </if>
+        <if test="sort=='4'.toString()">
+            select count(*) from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_approver=#{id} and a.w_confirm=0
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='5'.toString()">
+            select count(*) from workhourse a,user b,user c
+            <where>
+                a.w_application=b.u_id and a.w_approver=c.u_id and a.w_approver=#{id} and (a.w_confirm =1 or a.w_confirm
+                =2)
+            </where>
+            limit #{start},#{limit}
+        </if>
+    </select>
+    <!--审核当前工时通过-->
+    <update id="updateWorkHourseOk" parameterType="int">
+          update workhourse set w_confirm=1  where w_id=#{value}
+    </update>
+    <!--一键审核工时-->
+    <update id="updateAllWorkHourseOK" parameterType="int">
+          update workhourse set w_confirm=1 where w_approver=#{value}
+    </update>
+    <!--审核工时不通过-->
+    <update id="updateWorkHourseNoOk" parameterType="java.util.Map">
+           update workhourse set w_confirm=2,w_approverOpintion=#{reason} where w_id=#{id}
+    </update>
+    <!--添加请假-->
+    <insert id="addLeave" parameterType="java.util.Map">
+        insert into leavetable(l_application,l_approver,l_beginTime,l_endTime,l_long,l_time,l_confrim) values(#{id},#{hrid},#{begintime},#{endtime},#{day},#{time},#{result})
+    </insert>
+    <!--查找工时-->
+    <select id="findAllLeaver" parameterType="java.util.Map" resultType="java.util.Map">
+        <if test="sort == '1'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id}
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='2'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id} and a.l_confrim=1
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='3'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id} and a.l_confrim=2
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='4'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_approver=#{id} and a.l_confrim=0
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='5'.toString()">
+            select a.*,b.u_name applicationname,c.u_name approvername from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_approver=#{id} and (a.l_confrim=1 or
+                a.l_confrim=2)
+            </where>
+            limit #{start},#{limit}
+        </if>
+    </select>
+    <select id="findAllLeaverCount" parameterType="java.util.Map" resultType="int">
+        <if test="sort == '1'.toString()">
+            select COUNT(*)from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id}
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='2'.toString()">
+            select COUNT(*) from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id} and a.l_confrim=1
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='3'.toString()">
+            select COUNT(*) from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_application=#{id} and a.l_confrim=2
+            </where>
+            limit #{start},#{limit}
+        </if>
+        <if test="sort=='4'.toString()">
+            select COUNT(*) from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_approver=#{id} and a.l_confrim=0
+            </where>
+        </if>
+        <if test="sort=='5'.toString()">
+            select COUNT(*) from leavetable a,user b,user c
+            <where>
+                a.l_application=b.u_id and a.l_approver=c.u_id and a.l_approver=#{id} and (a.l_confrim=1 or
+                a.l_confrim=2)
+            </where>
+        </if>
+    </select>
+    <!--审核当前请假通过-->
+    <update id="updateLeaveOk" parameterType="int">
+        update leavetable set l_confrim=1  where l_id=#{value}
+    </update>
+    <!--一键审核请假-->
+    <update id="updateAllLeaveOK" parameterType="int">
+        update leavetable set l_confrim=1 where l_approver=#{value}
+    </update>
+    <!--审核请假不通过-->
+    <update id="updateLeaveNoOk" parameterType="java.util.Map">
+        update leavetable set l_confrim=2,l_reason=#{reason} where l_id=#{id}
+    </update>
+    <!--添加邮件-->
+    <insert id="addemail" parameterType="java.util.Map">
+        <if test="filepath!=null and filepath!=''">
+            insert into
+            email(e_sendId,e_receiveId,e_message,e_filePath,e_fileName,e_sendTime,e_receiveState)values(#{sendid},#{man},#{content},#{filepath},#{filename},#{time},#{state})
+        </if>
+        <if test="filepath==null or filepath==''">
+            insert into
+            email(e_sendId,e_receiveId,e_message,e_sendTime,e_receiveState)values(#{sendid},#{man},#{content},#{time},#{state})
+        </if>
+    </insert>
+    <!--查找邮件-->
+    <select id="findAllEmail" parameterType="java.util.Map" resultType="java.util.Map">
+        <if test="sign=='1'.toString()">
+            select a.*,b.u_name sendname,d.d_name departmentname,c.u_name receivename,e.d_name receivedepartmentname
+            from email a,user b,user c,department
+            d,department e where a.e_sendId=b.u_id and a.e_receiveId=c.u_id and b.d_id=d.d_id and e.d_id=c.d_id and
+            a.e_sendId=#{id}
+            <if test="time!=null and time!=''">
+                and a.e_sendTime=#{time}
+            </if>
+            <if test="name!=null and name!=''">
+                and c.u_name=#{name}
+            </if>
+        </if>
+        <if test="sign=='2'.toString()">
+            select a.*,b.u_name sendname,d.d_name departmentname,c.u_name receivename,e.d_name receivedepartmentname
+            from email a,user b,user c,department
+            d,department e where a.e_sendId=b.u_id and a.e_receiveId=c.u_id and b.d_id=d.d_id and e.d_id=c.d_id and
+            a.e_receiveId=#{id}
+            <if test="time!=null and time!=''">
+                and a.e_sendTime=#{time}
+            </if>
+            <if test="name!=null and name!=''">
+                and b.u_name=#{name}
+            </if>
+        </if>
+        limit #{start},#{limit}
+    </select>
+    <select id="findAllEmailCount" parameterType="java.util.Map" resultType="int">
+        <if test="sign=='1'.toString()">
+            select count(*) from email a,user b,user c,department
+            d,department e where a.e_sendId=b.u_id and a.e_receiveId=c.u_id and b.d_id=d.d_id and e.d_id=c.d_id and
+            a.e_sendId=#{id}
+            <if test="time!=null and time!=''">
+                and a.e_sendTime=#{time}
+            </if>
+            <if test="name!=null and name!=''">
+                and c.u_name=#{name}
+            </if>
+        </if>
+        <if test="sign=='2'.toString()">
+            select count(*) from email a,user b,user c,department
+            d,department e where a.e_sendId=b.u_id and a.e_receiveId=c.u_id and b.d_id=d.d_id and e.d_id=c.d_id and
+            a.e_receiveId=#{id}
+            <if test="time!=null and time!=''">
+                and a.e_sendTime=#{time}
+            </if>
+            <if test="name!=null and name!=''">
+                and b.u_name=#{name}
+            </if>
+        </if>
+    </select>
+    <!--删除邮件-->
+    <delete id="deleteEmaoById" parameterType="int">
+        delete from email where e_id=#{value}
+    </delete>
+    <!--查看我发布的任务-->
+    <select id="findTastByMe" parameterType="java.util.Map" resultType="java.util.Map">
+         select a.*,c.u_name receivename,b.u_name sendname from task a LEFT JOIN user c on a.t_receivePeople=c.u_id  LEFT JOIN user b on a.t_send=b.u_id where t_send=#{id}
+         limit #{start},#{limit}
+    </select>
+    <select id="findTastByMeCount" parameterType="java.util.Map" resultType="int">
+        select count(*) from task a LEFT JOIN user c on a.t_receivePeople=c.u_id  LEFT JOIN user b on a.t_send=b.u_id where t_send=#{id}
+    </select>
+    <!--添加任务-->
+    <insert id="addTask" parameterType="java.util.Map">
+        <if test="sort=='全体员工'.toString()">
+            <if test="filename!=null and filename!=''">
+                insert into
+                task(t_title,t_send,t_receiveSort,t_message,t_time,t_filename,t_filepath)values(#{title},#{send},#{sort},#{message},#{time},#{filename},#{filepath})
+            </if>
+            <if test="filename==null or filename==''">
+                insert into
+                task(t_title,t_send,t_receiveSort,t_message,t_time)values(#{title},#{send},#{sort},#{message},#{time})
+            </if>
+        </if>
+        <if test="sort=='单个员工'.toString()">
+            <if test="filename!=null and filename!=''">
+                insert into
+                task(t_title,t_send,t_receiveSort,t_receivePeople,t_message,t_time,t_filename,t_filepath)values(#{title},#{send},#{sort},#{receive},#{message},#{time},#{filename},#{filepath})
+            </if>
+            <if test="filename==null or filename==''">
+                insert into
+                task(t_title,t_send,t_receiveSort,t_receivePeople,t_message,t_time)values(#{title},#{send},#{sort},#{receive},#{message},#{time})
+            </if>
+        </if>
+    </insert>
+    <!--根据员工ID查找到部门主管的ID-->
+    <select id="findManIdThrowUserId" parameterType="int" resultType="int">
+	         select u_manId from department a where a.d_id=(select d_id from user b where b.u_id=#{value} )
+    </select>
+    <!--查看我的任务-->
+    <select id="findMyTask" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,c.u_name receivename,b.u_name sendname from task a LEFT JOIN user c on a.t_receivePeople=c.u_id  LEFT JOIN user b on a.t_send=b.u_id where t_receivePeople=#{id} or (t_send=#{manid} and t_receiveSort='全体员工')
+    </select>
+    <select id="findMyTaskCount" parameterType="java.util.Map" resultType="int">
+        select count(*) from task a LEFT JOIN user c on a.t_receivePeople=c.u_id  LEFT JOIN user b on a.t_send=b.u_id where t_receivePeople=#{id} or (t_send=#{manid} and t_receiveSort='全体员工')
+    </select>
+    <!--根据部门ID查找到部门人事主管ID-->
+    <select id="findHrIdByDepartmentId" parameterType="int" resultType="int">
+       select u_hrId from department where d_id=#{value}
+    </select>
+    <!--添加调动申请-->
+    <insert id="addHumanTransfo" parameterType="java.util.Map">
+          insert into humanreSources(h_application,h_localapprover,h_remoteapprover,h_departmentId,h_postion,h_reason,h_date,h_localConfirm,h_remoteConfirm,h_result)values(#{id},#{localHrId},#{remoteHrId},#{departmentId},#{position},#{reason},#{date},'0','0','0')
+    </insert>
+    <!--查看我的人事调动申请-->
+    <select id="findMyHumanApplication" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,b.u_name applicationname,c.u_name localhrname,d.u_name remotehrname,e.d_name departmentname from humanresources a,user b,user c,user d,department e
+        where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and h_application=#{id}
+        limit ${start},${limit}
+    </select>
+    <select id="findMyHumanApplicationCount" parameterType="java.util.Map" resultType="int">
+       select count(*) from humanresources a,user b,user c,user d,department e
+        where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and h_application=#{id}
+    </select>
+    <!--调入申请-->
+    <select id="findHumanInApplication" parameterType="java.util.Map" resultType="java.util.Map">
+    select a.*,b.u_name applicationname,c.u_name localhrname,d.u_name remotehrname,e.d_name departmentname,f.d_name olddepartmentname from humanresources a,user b,user c,user d,department e,department f
+    where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and f.d_id=b.d_id and h_remoteapprover=#{id}
+    limit ${start},${limit}
+    </select>
+    <select id="findHumanInApplicationCount" parameterType="java.util.Map" resultType="int">
+        select count(*) from humanresources a,user b,user c,user d,department e,department f
+        where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and f.d_id=b.d_id and h_remoteapprover=#{id}
+        limit ${start},${limit}
+    </select>
+    <!--调出申请-->
+    <select id="findHumanOutApplication" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,b.u_name applicationname,c.u_name localhrname,d.u_name remotehrname,e.d_name departmentname,f.d_name olddepartmentname from humanresources a,user b,user c,user d,department e,department f
+        where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and f.d_id=b.d_id and  h_localapprover=#{id}
+        limit ${start},${limit}
+    </select>
+    <select id="findHumanOutApplicationCount" parameterType="java.util.Map" resultType="int">
+        select count(*) from humanresources a,user b,user c,user d,department e,department f
+        where a.h_application=b.u_id and a.h_localapprover=c.u_id and a.h_remoteapprover=d.u_id and a.h_departmentId=e.d_id and f.d_id=b.d_id and h_localapprover=#{id}
+        limit ${start},${limit}
+    </select>
+    <!--调入审批通过和不通过-->
+    <update id="inApplicationIsOk" parameterType="int">
+        update humanreSources set h_remoteConfirm='1' where h_id=#{value}
+    </update>
+    <update id="inApplicationIsNoOk" parameterType="java.util.Map">
+        update humanreSources set h_remoteConfirm='2',h_remoteApproverOpinion=#{content} where h_id=#{id}
+    </update>
+    <!--修改最终结果-->
+    <update id="updateFinalResult" parameterType="int">
+        update humanreSources set h_result='1' where h_id=#{value}
+    </update>
+    <!--查看调动审批结果-->
+    <select id="findResult" parameterType="int" resultType="java.util.Map">
+        select h_localConfirm,h_remoteConfirm from humanreSources where h_id=#{value}
+    </select>
+    <!--调出审批通过和不通过-->
+    <update id="outApplicationIsOk" parameterType="int">
+        update humanreSources set h_localConfirm='1' where h_id=#{value}
+    </update>
+    <update id="outApplicationIsNoOk" parameterType="java.util.Map">
+        update humanreSources set h_localConfirm='2',h_localApproverOpinion=#{content} where h_id=#{id}
+    </update>
+    <!--审批通过，修改员工信息-->
+    <update id="updateUserMessageWhereTrans" parameterType="java.util.Map">
+        update user set d_id=#{h_departmentId},u_position=#{h_postion} where u_id=#{h_application}
+    </update>
+    <!--通过调动ID获取申请人ID-->
+    <select id="findUserIDByTran" parameterType="int" resultType="java.util.Map">
+        select h_application,h_postion,h_departmentId from humanreSources where h_id=#{value}
+    </select>
+    <!--员工修改密码-->
+    <update id="userUpdatePass" parameterType="java.util.Map">
+        update user set u_pass=#{pass} where u_id=#{id}
+    </update>
+</mapper>

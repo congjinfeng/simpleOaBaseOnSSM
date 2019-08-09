@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/mvc
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx-3.2.xsd ">
+    <!-- 开启自动扫描注解 -->
+    <context:component-scan base-package="com.cong"></context:component-scan>
+
+    <!--加载资源文件-->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+    <!--指定数据源-->
+    <!--DBCP连接池，是apache的连接池-->
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="${jdbc.driver}"></property>
+        <property name="url" value="${jdbc.url}"></property>
+        <property name="username" value="${jdbc.username}"></property>
+        <property name="password" value="${jdbc.password}"></property>
+    </bean>
+
+    <!--配置sqlSessionFactory-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--注入mybaits的配置文件-->
+        <property name="configLocation" value="classpath:Mybaits/SqlMapConfig.xml"></property>
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"></property>
+        <!--指定映射XML文件路径-->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+    </bean>
+
+    <!--MapperFactoryBean根据Mapper接口生成代理对象，但是这种方法很麻烦，每一个接口都需要一个这样的配置-->
+    <!-- <bean id="mapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+         <property name="mapperInterface" value="com.cong.Dao.userMapper"></property>
+     <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+     </bean>-->
+    <!--Mapper批量扫描，扫描出mapper接口，自动创建代理对象并且在Spring容器中注册-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--指定扫描的包名-->
+        <property name="basePackage" value="com.cong.dao"></property>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+
+    <!--SpringMVC的配置-->
+    <!--使用这个可以代替上面两个注解的映射器和适配器-->
+    <mvc:annotation-driven conversion-service="conversionService">
+        <!--解决json返回日期是时间戳的问题，转换成格式-->
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="com.fasterxml.jackson.databind.ObjectMapper">
+                        <property name="dateFormat">
+                            <bean class="java.text.SimpleDateFormat">
+                                <constructor-arg type="java.lang.String" value="yyyy-MM-dd HH:mm:ss"/>
+                            </bean>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </mvc:message-converters>
+
+    </mvc:annotation-driven>
+    <!--自定义参数绑定-->
+    <bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+        <!--配置转换器-->
+        <property name="converters">
+            <list>
+                <!--指定转换的类路径-->
+                <bean class="com.cong.conver.DateConver"></bean>
+            </list>
+        </property>
+    </bean>
+    <!--配置视图解析器-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/jsp/"></property>
+        <property name="suffix" value=".jsp"></property>
+    </bean>
+
+    <!--配置事务管理-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--配数据源-->
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <!--配置通知-->
+    <tx:advice transaction-manager="transactionManager" id="txAdvice">
+        <tx:attributes>
+            <tx:method name="delete*" propagation="REQUIRED"/>
+            <tx:method name="insert*" propagation="REQUIRED"/>
+            <tx:method name="update*" propagation="REQUIRED"/>
+            <tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <!--aop-->
+    <aop:config>
+        <aop:advisor advice-ref="txAdvice" pointcut="execution(* com.cong.serviceImp.*.*(..))"></aop:advisor>
+    </aop:config>
+
+    <!--配置拦截器-->
+    <!--  <mvc:interceptors>
+        <mvc:interceptor>
+            &lt;!&ndash;配置拦截特有的访问路径，/**代表都拦截&ndash;&gt;
+            <mvc:mapping path="/**"/>
+            <bean class="com.cong.Interceptor.LoginInterceptor"></bean>
+        </mvc:interceptor>
+      </mvc:interceptors>-->
+
+    <!--加载静态资源-->
+    <!-- <mvc:default-servlet-handler/>-->
+    <!-- 设置上传文件最大值   1M=1*1024*1024(B)=1048576 bytes -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="5242880" />
+    </bean>
+
+</beans>

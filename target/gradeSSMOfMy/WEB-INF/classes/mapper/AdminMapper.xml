@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cong.dao.AdminMapper">
+    <!--检查管理员登录免密码-->
+    <select id="checkAdminLoginPass" parameterType="java.util.Map" resultType="admin">
+            select *from admin where a_name=#{name} and a_pass=#{pass}
+    </select>
+</mapper>
